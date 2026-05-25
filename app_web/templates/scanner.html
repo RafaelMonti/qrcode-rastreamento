@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Rastreamento de Materiais</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ciano:    #22d3ee;
+      --ciano2:   #06b6d4;
+      --roxo:     #a78bfa;
+      --verde:    #34d399;
+      --vermelho: #f87171;
+      --amarelo:  #fbbf24;
+      --fundo:    #020817;
+      --card:     rgba(255,255,255,0.04);
+      --borda:    rgba(255,255,255,0.08);
+      --texto:    #f1f5f9;
+      --sub:      #64748b;
+      --raio:     16px;
+    }
+
+    html { font-size: 16px; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--fundo);
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(34,211,238,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 90% 80%, rgba(167,139,250,0.1) 0%, transparent 50%);
+      color: var(--texto);
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      padding: 1.2rem 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: .85rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid rgba(34,211,238,0.2);
+      box-shadow: 0 4px 30px rgba(0,0,0,.6), 0 0 60px rgba(34,211,238,0.05);
+    }
+    .header-icon {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, var(--ciano2), var(--roxo));
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+      box-shadow: 0 0 20px rgba(34,211,238,0.4);
+      flex-shrink: 0;
+    }
+    header h1 {
+      font-size: 1.05rem; font-weight: 800;
+      background: linear-gradient(90deg, #fff 0%, var(--ciano) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p { font-size: .72rem; color: var(--sub); margin-top: .2rem; }
+
+    /* ── LAYOUT ── */
+    main {
+      max-width: 560px; margin: 0 auto;
+      padding: 1.2rem 1rem 5rem;
+      display: flex; flex-direction: column; gap: 1rem;
+    }
+
+    /* ── CARD GLASS ── */
+    .card {
+      background: var(--card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: var(--raio);
+      border: 1px solid var(--borda);
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+      transition: border-color .2s;
+    }
+    .card:hover { border-color: rgba(34,211,238,0.15); }
+
+    .card-header {
+      display: flex; align-items: center; gap: .75rem;
+      padding: 1rem 1.1rem;
+      border-bottom: 1px solid var(--borda);
+      background: rgba(255,255,255,.02);
+    }
+    .card-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, rgba(34,211,238,.15), rgba(167,139,250,.15));
+      border: 1px solid rgba(34,211,238,.2);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+    .card-header h2 {
+      font-size: .78rem; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .1em;
+      color: var(--ciano);
+    }
+    .card-header p { font-size: .7rem; color: var(--sub); margin-top: .15rem; }
+    .card-body { padding: 1.1rem; }
+
+    /* ── PASSOS ── */
+    .passo {
+      display: flex; align-items: flex-start; gap: .75rem;
+      padding: .85rem 1rem;
+      background: rgba(255,255,255,.025);
+      border: 1px solid var(--borda);
+      border-radius: 12px;
+    }
+    .passo-num {
+      width: 26px; height: 26px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--ciano2), var(--roxo));
+      color: #fff; font-size: .72rem; font-weight: 900;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 12px rgba(34,211,238,.35);
+    }
+    .passo p { font-size: .84rem; color: #cbd5e1; line-height: 1.45; }
+    .passo strong { color: #fff; }
+
+    /* ── BOTÕES ── */
+    .btn {
+      display: flex; align-items: center; justify-content: center;
+      gap: .55rem; padding: .95rem 1.1rem;
+      border: none; border-radius: 12px;
+      font-size: .95rem; font-weight: 700;
+      cursor: pointer;
+      transition: transform .12s, box-shadow .2s, opacity .2s;
+      touch-action: manipulation; width: 100%;
+    }
+    .btn:active { transform: scale(.96); }
+    .btn:disabled { opacity: .35; cursor: not-allowed; }
+
+    .btn-camera {
+      background: rgba(34,211,238,.08);
+      color: var(--ciano);
+      border: 1px solid rgba(34,211,238,.25);
+      letter-spacing: .02em;
+    }
+    .btn-camera:hover {
+      background: rgba(34,211,238,.14);
+      box-shadow: 0 0 20px rgba(34,211,238,.2);
+    }
+
+    .btn-buscar {
+      background: linear-gradient(135deg, var(--ciano2), #0891b2);
+      color: #000;
+      font-weight: 800;
+      box-shadow: 0 4px 15px rgba(6,182,212,.4);
+      width: auto; padding: .9rem 1.4rem; border-radius: 12px;
+    }
+    .btn-buscar:hover { box-shadow: 0 4px 25px rgba(6,182,212,.6); }
+
+    .btn-entrada {
+      background: linear-gradient(135deg, #059669, #047857);
+      color: #fff; flex: 1;
+      font-size: .95rem;
+      box-shadow: 0 4px 20px rgba(5,150,105,.4);
+      padding: 1.1rem;
+    }
+    .btn-saida {
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+      color: #fff; flex: 1;
+      font-size: .95rem;
+      box-shadow: 0 4px 20px rgba(220,38,38,.4);
+      padding: 1.1rem;
+    }
+    .btn-desc { font-size: .67rem; font-weight: 400; opacity: .8; display: block; margin-top: .2rem; }
+    .acoes { display: flex; gap: .75rem; margin-top: 1.1rem; }
+
+    /* ── INPUT ── */
+    .input-wrap { display: flex; gap: .55rem; }
+    input[type="text"] {
+      flex: 1; padding: .9rem 1rem;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--borda);
+      border-radius: 12px;
+      color: var(--texto); font-size: .95rem;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input[type="text"]::placeholder { color: #334155; }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--ciano2);
+      box-shadow: 0 0 0 3px rgba(6,182,212,.15);
+    }
+    label {
+      display: block; font-size: .7rem; font-weight: 700;
+      color: #94a3b8; text-transform: uppercase; letter-spacing: .07em;
+      margin-bottom: .35rem; margin-top: .9rem;
+    }
+    label:first-child { margin-top: 0; }
+
+    /* ── CÂMERA ── */
+    #camera-wrap { display: none; flex-direction: column; align-items: center; gap: .7rem; margin-top: .9rem; }
+    #video {
+      width: 100%; max-height: 260px; border-radius: 12px;
+      background: #000; object-fit: cover;
+      border: 1px solid rgba(34,211,238,.3);
+      box-shadow: 0 0 30px rgba(34,211,238,.15);
+    }
+    #camera-status { font-size: .78rem; color: var(--sub); text-align: center; }
+
+    /* ── RESULTADO DO ATIVO ── */
+    .ativo-topo {
+      display: flex; align-items: center; gap: .9rem;
+      padding-bottom: 1rem; margin-bottom: 1rem;
+      border-bottom: 1px solid var(--borda);
+    }
+    .ativo-avatar {
+      width: 52px; height: 52px; flex-shrink: 0;
+      background: linear-gradient(135deg, rgba(34,211,238,.15), rgba(167,139,250,.15));
+      border: 1px solid rgba(34,211,238,.2);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem;
+    }
+    .ativo-info { flex: 1; }
+    .ativo-info h3 { font-size: 1rem; font-weight: 800; line-height: 1.3; }
+    .ativo-info p  { font-size: .77rem; color: var(--sub); margin-top: .2rem; }
+
+    .status-badge {
+      display: inline-flex; align-items: center; gap: .3rem;
+      padding: .3rem .85rem; border-radius: 50px;
+      font-size: .73rem; font-weight: 700; white-space: nowrap;
+    }
+    .status-obra         { background: rgba(52,211,153,.12); color: #34d399; border: 1px solid rgba(52,211,153,.25); }
+    .status-almoxarifado { background: rgba(96,165,250,.12); color: #93c5fd; border: 1px solid rgba(147,197,253,.25); }
+    .status-manutencao   { background: rgba(251,191,36,.12); color: #fbbf24; border: 1px solid rgba(251,191,36,.25); }
+
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-bottom: 1rem; }
+    .info-item {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--borda);
+      border-radius: 10px; padding: .7rem .85rem;
+    }
+    .info-item .lbl { font-size: .63rem; color: var(--sub); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+    .info-item .val { font-size: .88rem; font-weight: 700; margin-top: .25rem; color: var(--texto); }
+
+    .aviso {
+      display: flex; align-items: flex-start; gap: .6rem;
+      background: rgba(251,191,36,.07);
+      border: 1px solid rgba(251,191,36,.2);
+      border-radius: 10px; padding: .8rem 1rem;
+      font-size: .8rem; color: #fde68a; line-height: 1.45;
+      margin-bottom: 1rem;
+    }
+    .aviso strong { color: #fff; }
+
+    /* ── HISTÓRICO ── */
+    .mov-item {
+      display: flex; align-items: center; gap: .8rem;
+      padding: .8rem 0; border-bottom: 1px solid var(--borda);
+    }
+    .mov-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .mov-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .mov-dot-entrada { background: var(--verde); box-shadow: 0 0 8px rgba(52,211,153,.7); }
+    .mov-dot-saida   { background: var(--vermelho); box-shadow: 0 0 8px rgba(248,113,113,.7); }
+    .mov-info { flex: 1; }
+    .mov-tipo { font-size: .85rem; font-weight: 700; }
+    .mov-tipo-entrada { color: var(--verde); }
+    .mov-tipo-saida   { color: var(--vermelho); }
+    .mov-detalhe { font-size: .72rem; color: var(--sub); margin-top: .15rem; }
+    .mov-data { font-size: .68rem; color: var(--sub); text-align: right; flex-shrink: 0; line-height: 1.5; }
+
+    /* ── VAZIO ── */
+    .vazio { text-align: center; padding: 2rem 1rem; color: var(--sub); font-size: .85rem; }
+    .vazio .emoji { font-size: 2rem; display: block; margin-bottom: .5rem; }
+    .hidden { display: none !important; }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 1.5rem; left: 50%;
+      transform: translateX(-50%);
+      padding: .85rem 1.6rem; border-radius: 50px;
+      font-weight: 700; font-size: .9rem; color: #fff;
+      z-index: 999; max-width: 90vw; text-align: center;
+      box-shadow: 0 8px 30px rgba(0,0,0,.5);
+      animation: fadeUp .2s ease;
+    }
+    .toast-ok   { background: linear-gradient(135deg,#047857,#065f46); border: 1px solid #34d399; }
+    .toast-erro { background: linear-gradient(135deg,#b91c1c,#991b1b); border: 1px solid #f87171; }
+    @keyframes fadeUp { from { opacity:0; transform: translateX(-50%) translateY(12px); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-icon">🏗️</div>
+  <div>
+    <h1>Rastreamento de Materiais</h1>
+    <p>Controle de entrada e saída — Canteiro de Obras</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── PASSOS ── -->
+  <div style="display:flex;flex-direction:column;gap:.55rem;">
+    <div class="passo">
+      <div class="passo-num">1</div>
+      <p><strong>Escaneie o QR Code</strong> colado no material usando a câmera abaixo, ou pesquise pelo ID manualmente.</p>
+    </div>
+    <div class="passo">
+      <div class="passo-num">2</div>
+      <p><strong>Confirme o material</strong> que aparece na tela para ter certeza que é o correto.</p>
+    </div>
+    <div class="passo">
+      <div class="passo-num">3</div>
+      <p><strong>Registre a movimentação</strong> clicando em Entrada (material chegou) ou Saída (material saiu).</p>
+    </div>
+  </div>
+
+  <!-- ── CÂMERA ── -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📷</div>
+      <div>
+        <h2>Ler QR Code pela Câmera</h2>
+        <p>Aponte para a etiqueta do material</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <button class="btn btn-camera" id="btn-camera" onclick="toggleCamera()">
+        📷 &nbsp;Abrir câmera do celular
+      </button>
+      <div id="camera-wrap">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas" style="display:none;"></canvas>
+        <p id="camera-status">Aponte para o QR Code do material…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BUSCA MANUAL ── -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🔍</div>
+      <div>
+        <h2>Busca Manual</h2>
+        <p>Use se o QR Code estiver danificado</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <label for="input-id">ID do ativo</label>
+      <div class="input-wrap">
+        <input id="input-id" type="text" placeholder="Cole ou digite o ID do material"
+               value="{{ id_ativo if id_ativo else '' }}" />
+        <button class="btn btn-buscar" onclick="buscarAtivo()">Buscar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RESULTADO DO ATIVO ── -->
+  <div class="card hidden" id="sec-resultado">
+    <div class="card-header">
+      <div class="card-icon">📦</div>
+      <div>
+        <h2>Material Encontrado</h2>
+        <p>Confira os dados antes de registrar</p>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <div class="ativo-topo">
+        <div class="ativo-avatar" id="ativo-icone">📦</div>
+        <div class="ativo-info">
+          <h3 id="ativo-descricao">—</h3>
+          <p id="ativo-categoria">—</p>
+        </div>
+        <span class="status-badge" id="status-badge">—</span>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="lbl">Centro de Custo</div>
+          <div class="val" id="ativo-centro">—</div>
+        </div>
+        <div class="info-item">
+          <div class="lbl">Código ERP</div>
+          <div class="val" id="ativo-erp">—</div>
+        </div>
+      </div>
+
+      <div class="aviso">
+        <span>⚠️</span>
+        <span><strong>Atenção:</strong> Preencha seu nome e a localização antes de registrar a movimentação.</span>
+      </div>
+
+      <label for="input-local">📍 Localização atual do material</label>
+      <input id="input-local" type="text" placeholder="Ex: Almoxarifado A, Bloco 3, Guarita…" />
+
+      <label for="input-usuario">👤 Seu nome ou matrícula</label>
+      <input id="input-usuario" type="text" placeholder="Ex: João Silva ou MAT-1042" />
+
+      <label for="input-obs">💬 Observação (opcional)</label>
+      <input id="input-obs" type="text" placeholder="Ex: Embalagem danificada, material incompleto…" />
+
+      <div class="acoes">
+        <button class="btn btn-entrada" id="btn-entrada" onclick="registrar('Entrada')">
+          <span>⬇️</span>
+          <span>Registrar Entrada<span class="btn-desc">Material chegou / foi recebido</span></span>
+        </button>
+        <button class="btn btn-saida" id="btn-saida" onclick="registrar('Saída')">
+          <span>⬆️</span>
+          <span>Registrar Saída<span class="btn-desc">Material saiu / foi enviado</span></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HISTÓRICO ── -->
+  <div class="card hidden" id="sec-historico">
+    <div class="card-header">
+      <div class="card-icon">🕓</div>
+      <div>
+        <h2>Histórico de Movimentações</h2>
+        <p>Últimos registros deste material</p>
+      </div>
+    </div>
+    <div class="card-body" id="historico-lista"></div>
+  </div>
+
+</main>
+
+<div id="toast" class="toast hidden"></div>
+
+<script>
+let idAtivoAtual = null;
+let videoStream  = null;
+let scanInterval = null;
+
+async function buscarAtivo(idOverride) {
+  const id = (idOverride || document.getElementById("input-id").value).trim();
+  if (!id) { showToast("Informe o ID do ativo.", "erro"); return; }
+  try {
+    const resp = await fetch(`/api/ativo/${encodeURIComponent(id)}`);
+    if (resp.status === 404) { showToast("❌ Material não encontrado.", "erro"); return; }
+    if (!resp.ok)            { showToast("Erro ao buscar. Tente novamente.", "erro"); return; }
+    const dados = await resp.json();
+    idAtivoAtual = id;
+    renderAtivo(dados.ativo);
+    renderHistorico(dados.historico);
+    document.getElementById("input-id").value = id;
+    document.getElementById("sec-resultado").classList.remove("hidden");
+    document.getElementById("sec-historico").classList.remove("hidden");
+    document.getElementById("sec-resultado").scrollIntoView({ behavior: "smooth" });
+  } catch (e) {
+    showToast("Sem conexão. Verifique o sinal.", "erro");
+  }
+}
+
+function renderAtivo(a) {
+  const icones = { "Maquinário": "🏗️", "Insumo": "🧱" };
+  document.getElementById("ativo-icone").textContent     = icones[a.categoria] || "📦";
+  document.getElementById("ativo-descricao").textContent = a.descricao;
+  document.getElementById("ativo-categoria").textContent = a.categoria;
+  document.getElementById("ativo-centro").textContent    = a.centro_custo;
+  document.getElementById("ativo-erp").textContent       = a.codigo_externo || "Não vinculado";
+  const badge = document.getElementById("status-badge");
+  const mapa = {
+    "Em obra":         { cls: "status-obra",          icone: "🟢", txt: "Em obra" },
+    "No almoxarifado": { cls: "status-almoxarifado",   icone: "🔵", txt: "No almoxarifado" },
+    "Em manutenção":   { cls: "status-manutencao",     icone: "🟡", txt: "Em manutenção" },
+  };
+  const s = mapa[a.status_atual] || { cls: "", icone: "⚪", txt: a.status_atual };
+  badge.className = `status-badge ${s.cls}`;
+  badge.textContent = `${s.icone} ${s.txt}`;
+}
+
+function renderHistorico(lista) {
+  const el = document.getElementById("historico-lista");
+  if (!lista.length) {
+    el.innerHTML = '<div class="vazio"><span class="emoji">📋</span>Nenhuma movimentação registrada ainda.</div>';
+    return;
+  }
+  el.innerHTML = lista.map(m => {
+    const entrada = m.tipo === "Entrada";
+    const data = new Date(m.data_hora).toLocaleString("pt-BR");
+    return `
+      <div class="mov-item">
+        <div class="mov-dot ${entrada ? 'mov-dot-entrada' : 'mov-dot-saida'}"></div>
+        <div class="mov-info">
+          <div class="mov-tipo ${entrada ? 'mov-tipo-entrada' : 'mov-tipo-saida'}">
+            ${entrada ? '⬇️ Entrada' : '⬆️ Saída'}
+          </div>
+          <div class="mov-detalhe">
+            👤 ${m.usuario}${m.localizacao ? ' · 📍 ' + m.localizacao : ''}
+          </div>
+        </div>
+        <div class="mov-data">${data}</div>
+      </div>`;
+  }).join("");
+}
+
+async function registrar(tipo) {
+  if (!idAtivoAtual) return;
+  const usuario     = document.getElementById("input-usuario").value.trim();
+  const localizacao = document.getElementById("input-local").value.trim();
+  const observacao  = document.getElementById("input-obs").value.trim();
+  if (!usuario) { showToast("⚠️ Informe seu nome ou matrícula.", "erro"); return; }
+  document.getElementById("btn-entrada").disabled = true;
+  document.getElementById("btn-saida").disabled   = true;
+  try {
+    const resp = await fetch("/api/movimentacao", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id_ativo: idAtivoAtual, tipo, localizacao, usuario, observacao }),
+    });
+    const json = await resp.json();
+    if (resp.ok) {
+      showToast(`✅ ${tipo} registrada com sucesso!`, "ok");
+      await buscarAtivo(idAtivoAtual);
+    } else {
+      showToast(json.erro || "Erro ao registrar.", "erro");
+    }
+  } catch (e) {
+    showToast("Sem conexão. Tente novamente.", "erro");
+  } finally {
+    document.getElementById("btn-entrada").disabled = false;
+    document.getElementById("btn-saida").disabled   = false;
+  }
+}
+
+async function toggleCamera() {
+  const wrap = document.getElementById("camera-wrap");
+  const btn  = document.getElementById("btn-camera");
+  if (videoStream) { stopCamera(); return; }
+  wrap.style.display = "flex";
+  btn.textContent = "⏹  Fechar câmera";
+  try {
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment", width: { ideal: 1280 } }
+    });
+    const video = document.getElementById("video");
+    video.srcObject = videoStream;
+    video.play();
+    video.addEventListener("loadedmetadata", startScan);
+  } catch (e) {
+    showToast("Não foi possível acessar a câmera.", "erro");
+    stopCamera();
+  }
+}
+
+function startScan() {
+  const video  = document.getElementById("video");
+  const canvas = document.getElementById("canvas");
+  const ctx    = canvas.getContext("2d");
+  scanInterval = setInterval(() => {
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const code = jsQR(
+      ctx.getImageData(0, 0, canvas.width, canvas.height).data,
+      canvas.width, canvas.height,
+      { inversionAttempts: "dontInvert" }
+    );
+    if (code) {
+      stopCamera();
+      try {
+        const url = new URL(code.data);
+        const id  = url.searchParams.get("id_ativo");
+        if (id) { document.getElementById("input-id").value = id; buscarAtivo(id); }
+        else showToast("QR Code não pertence a este sistema.", "erro");
+      } catch {
+        document.getElementById("input-id").value = code.data;
+        buscarAtivo(code.data);
+      }
+    }
+  }, 300);
+}
+
+function stopCamera() {
+  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+  if (videoStream)  { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
+  document.getElementById("camera-wrap").style.display = "none";
+  document.getElementById("btn-camera").textContent = "📷  Abrir câmera do celular";
+}
+
+let toastTimer;
+function showToast(msg, tipo) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = `toast toast-${tipo}`;
+  t.classList.remove("hidden");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.add("hidden"), 3500);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const v = document.getElementById("input-id").value;
+  if (v) buscarAtivo(v);
+});
+</script>
+</body>
+</html>

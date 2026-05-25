@@ -1,0 +1,20 @@
+# Web framework
+flask==3.0.3
+python-dotenv==1.0.1
+
+# Banco de dados
+psycopg2-binary>=2.9.10
+
+# Geração de QR Codes e manipulação de imagens
+qrcode[pil]==7.4.2
+Pillow==10.4.0
+
+# Leitura de planilhas
+pandas==2.2.2
+openpyxl==3.1.4
+
+# Requisições HTTP (integração ERP)
+requests==2.32.3
+
+# Servidor de produção
+gunicorn==22.0.0

@@ -1,0 +1,24 @@
+# Variáveis de ambiente (NUNCA enviar para o GitHub)
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+.venv/
+
+# QR Codes gerados (arquivos grandes, não precisam ir pro GitHub)
+qrcodes_gerados/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
